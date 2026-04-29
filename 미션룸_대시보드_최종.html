@@ -1,0 +1,856 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Mission Room Dash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=Space+Mono:wght@400;700&display=swap');
+  :root {
+    --bg:#0a0a0f; --surface:#12121a; --surface2:#1a1a26; --border:#2a2a3e;
+    --accent:#cb8cf4; --text:#e8e8f0; --text2:#8888aa;
+    --bar-done:#6c63ff; --bar-prog:#ffa94d; --bar-not:#ff4757; --bar-nr:#3a3a52;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);font-size:13px;min-height:100vh;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(203,140,244,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(203,140,244,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+  /* Header */
+  .header{background:var(--surface);border-bottom:1px solid var(--border);padding:16px 26px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1;}
+  .h-left{display:flex;align-items:center;gap:12px;}
+  .h-icon{width:38px;height:38px;background:linear-gradient(135deg,var(--accent),#d9a8f8);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 0 20px rgba(203,140,244,0.35);}
+  .h-title{font-size:17px;font-weight:700;letter-spacing:-.3px;}
+  .h-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+  .h-right{font-size:11px;color:var(--text2);text-align:right;line-height:1.8;font-family:'Space Mono',monospace;}
+  .h-right strong{color:var(--text);}
+
+  /* Settings bar */
+  .setbar{background:var(--surface);border-bottom:1px solid var(--border);padding:9px 26px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:relative;z-index:1;}
+  .slbl{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+  .sp{width:1px;height:22px;background:var(--border);}
+  .cg{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2);}
+  .cg input[type=color]{width:24px;height:24px;border:1px solid var(--border);border-radius:4px;cursor:pointer;padding:2px;background:var(--surface2);}
+
+  /* Filter bar */
+  .fbar{background:var(--surface);border-bottom:1px solid var(--border);padding:10px 26px;display:flex;align-items:center;position:relative;z-index:1;}
+  .vtabs{display:flex;gap:4px;}
+  .vt{font-size:12px;font-weight:600;padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;transition:.2s;font-family:'Noto Sans KR',sans-serif;}
+  .vt:hover{border-color:var(--accent);color:var(--accent);}
+  .vt.on{background:rgba(203,140,244,0.15);border-color:var(--accent);color:var(--accent);}
+
+  /* Main */
+  .main{padding:24px 26px;max-width:1440px;margin:0 auto;position:relative;z-index:1;}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px 18px;transition:border-color .2s;}
+  .kpi:hover{border-color:rgba(203,140,244,0.4);}
+  .kpi-lbl{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
+  .kpi-val{font-size:28px;font-weight:900;line-height:1;font-family:'Space Mono',monospace;color:var(--text);}
+  .kpi-sub{font-size:10px;color:var(--text2);margin-top:5px;}
+  .kpi.dark{background:linear-gradient(135deg,#1a1a2e,#16162a);border-color:rgba(203,140,244,0.3);}
+  .kpi.dark .kpi-lbl{color:rgba(108,99,255,0.7);}
+  .kpi.dark .kpi-val{color:#fff;}
+  .kpi.bl4{border-left:3px solid var(--bar-done);}
+  .kpi.yl4{border-left:3px solid var(--bar-prog);}
+  .kpi.rl4{border-left:3px solid var(--bar-not);}
+  .kpi.gl4{border-left:3px solid var(--border);}
+
+  /* Card */
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px;}
+  .stitle{font-size:12px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:2px;display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .stitle::after{content:'';flex:1;height:1px;background:var(--border);}
+  .sbadge{font-size:10px;padding:2px 9px;border-radius:20px;background:rgba(203,140,244,0.12);border:1px solid rgba(203,140,244,0.25);color:var(--accent);font-weight:600;margin-left:0;font-family:'Space Mono',monospace;letter-spacing:.5px;}
+  .lock-badge{font-size:10px;padding:2px 9px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-weight:600;display:inline-flex;align-items:center;gap:3px;}
+
+  /* Rings */
+  .rgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:6px;}
+  .rcard{text-align:center;padding:10px 4px 8px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);transition:.2s;}
+  .rcard:hover{border-color:var(--accent);}
+  .rcard.cur{border-color:var(--accent);background:rgba(203,140,244,0.1);}
+  .rcard.fut{opacity:.3;}
+  .rwk{font-size:11px;font-weight:700;color:var(--text2);}
+  .rwk.cur{color:var(--accent);}
+  .rdt{font-size:9px;color:var(--text2);opacity:.6;margin-bottom:6px;}
+  .rwrap{position:relative;width:52px;height:52px;margin:0 auto 6px;}
+  .rwrap svg{transform:rotate(-90deg);}
+  .rpct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:700;color:var(--text);font-family:'Space Mono',monospace;}
+  .rpct.cur{color:var(--accent);}
+  .rsub{font-size:9px;color:var(--text2);}
+
+  /* Legend */
+  .legend{display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap;}
+  .li{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);}
+  .ld{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+
+  /* Bar chart */
+  .brow{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+  .blbl{width:68px;text-align:right;font-size:10px;color:var(--text2);flex-shrink:0;line-height:1.3;font-family:'Space Mono',monospace;}
+  .blbl b{font-weight:700;color:var(--text);}
+  .btrack{flex:1;height:22px;background:var(--border);border-radius:4px;overflow:hidden;display:flex;position:relative;}
+  .bseg{height:100%;transition:width .5s cubic-bezier(0.25,0.46,0.45,0.94);}
+  .bcurtag{position:absolute;right:6px;top:50%;transform:translateY(-50%);font-size:9px;font-weight:700;color:var(--accent);background:rgba(203,140,244,0.15);padding:1px 6px;border-radius:3px;font-family:'Space Mono',monospace;}
+  .binfo{font-size:11px;color:var(--text2);width:90px;flex-shrink:0;font-family:'Space Mono',monospace;}
+
+  /* Table */
+  .tw{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;white-space:nowrap;}
+  thead th{background:var(--surface2);color:var(--text2);padding:9px 12px;text-align:center;font-weight:700;font-size:11px;letter-spacing:.5px;text-transform:uppercase;}
+  thead th.lc{text-align:left;background:#0f0f1a;color:var(--text2);min-width:150px;}
+  thead th.cur{background:rgba(203,140,244,0.2);color:var(--accent);}
+  thead th.fut{opacity:.4;}
+  .htag{display:inline-block;background:rgba(203,140,244,0.2);color:var(--accent);font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px;margin-bottom:2px;font-family:'Space Mono',monospace;}
+  tbody td{padding:8px 12px;text-align:center;border-bottom:1px solid var(--border);color:var(--text);}
+  tbody td.lc{text-align:left;font-weight:600;color:var(--text);background:var(--surface2);}
+  tbody tr:hover td{background:rgba(203,140,244,0.05);}
+  tbody tr:hover td.lc{background:rgba(203,140,244,0.08);}
+
+  tr.locked-row td.lc{color:var(--text2);}
+  td.locked-cell{position:relative;}
+
+  .cg2{color:#7dd9a0;font-weight:700;}
+  .cy{color:#f5c96a;font-weight:700;}
+  .cr{color:#e88080;font-weight:700;}
+  .cb{font-weight:700;}
+  .cm{color:var(--text2);}
+  .cpend{color:var(--text2);font-style:italic;font-size:10px;opacity:.6;}
+
+  /* SBU table */
+  .stbl thead th{background:var(--surface2);color:var(--text2);padding:8px 10px;text-align:center;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;}
+  .stbl thead th:first-child{text-align:left;}
+  .stbl tbody td{padding:7px 10px;border-bottom:1px solid var(--border);text-align:center;color:var(--text);}
+  .stbl tbody td:first-child{text-align:left;font-weight:600;color:var(--text);}
+  .stbl tbody tr:hover td{background:rgba(203,140,244,0.05);}
+  .mbar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:3px;}
+  .dc{text-align:center;padding:14px 8px 12px;border-radius:10px;border:1px solid var(--bd);background:var(--s2);}
+  .dc.cur{border-color:var(--acc);background:rgba(203,140,244,.08);}
+  .dc.fut{opacity:.35;}
+  .dc-wk{font-size:12px;font-weight:700;color:var(--t2);margin-bottom:2px;}
+  .dc-wk.cur{color:var(--acc);}
+  .dc-dt{font-size:9px;color:var(--t2);opacity:.5;margin-bottom:10px;}
+  .dc-wrap{position:relative;width:96px;height:96px;margin:0 auto 10px;}
+  .dc-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;}
+  .dc-pct{font-size:17px;font-weight:800;color:var(--t);font-family:'Space Mono',monospace;line-height:1;}
+  .dc-pct.cur{color:var(--acc);}
+  .dc-sub{font-size:10px;color:var(--t2);margin-top:3px;}
+
+  .panel{display:none;}
+  .panel.on{display:block;}
+  .footer{text-align:center;padding:18px;font-size:11px;color:var(--text2);border-top:1px solid var(--border);font-family:'Space Mono',monospace;position:relative;z-index:1;}
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<div class="header">
+  <div class="h-left">
+    <div class="h-icon">🎯</div>
+    <div>
+      <div class="h-title">AI Mission Room Dash</div>
+      <div class="h-sub">Mission Room Tracking · 기준일: 2026-03-24</div>
+    </div>
+  </div>
+  <div class="h-right" id="hRight" style="display:none">
+    전체 대상자 <strong id="hTotal">490명</strong> &nbsp;|&nbsp; 미로그인 <strong id="hNr">30명</strong><br>
+    로그인 완료 <strong id="hLi">459명</strong> &nbsp;|&nbsp; 현재 <strong id="hCurWeek">5주차</strong> 진행 중
+  </div>
+</div>
+
+<div id="uploadScreen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:40px 20px;">
+  <div style="text-align:center;max-width:420px;">
+    <div style="font-size:48px;margin-bottom:20px;">📂</div>
+    <h2 style="font-size:20px;font-weight:700;color:#e8e8f0;margin-bottom:28px;">데이터 파일을 업로드하세요</h2>
+    <label id="uploadScreenLabel" style="display:inline-flex;align-items:center;gap:10px;cursor:pointer;font-size:14px;font-weight:700;color:#fff;background:linear-gradient(135deg,#cb8cf4,#d9a8f8);padding:14px 32px;border-radius:12px;transition:.2s;box-shadow:0 4px 20px rgba(203,140,244,0.3);">
+      <span style="font-size:18px">📂</span>
+      <span id="uploadScreenTxt">파일 선택</span>
+      <input type="file" id="fileInputScreen" accept=".xlsx" style="display:none" onchange="handleFile(this)">
+    </label>
+    <p style="font-size:11px;color:#8888aa;margin-top:16px;opacity:.6;">.xlsx 형식만 지원합니다</p>
+    <p style="font-size:12px;color:#8888aa;margin-top:10px;">업로드에 필요한 실시간 파일은 탁현지P에게 문의 바랍니다.</p>
+  </div>
+</div>
+
+<div class="setbar" id="sbar" style="display:none">
+  <div class="sp"></div>
+  <span class="slbl">막대 색상</span>
+  <div class="cg"><input type="color" id="cD" value="#6c63ff"><span>수료</span></div>
+  <div class="cg"><input type="color" id="cP" value="#ffa94d"><span>진행 중</span></div>
+  <div class="cg"><input type="color" id="cN" value="#ff4757"><span>미시작</span></div>
+  <div class="cg"><input type="color" id="cR" value="#D1D5DB"><span>미로그인</span></div>
+  <div class="sp"></div>
+  <label id="uploadLabel" style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:11px;color:var(--text2);border:1px solid var(--border);padding:4px 14px;border-radius:20px;transition:.2s;" onmouseover="this.style.borderColor='#cb8cf4';this.style.color='#cb8cf4'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">
+    <span>📂</span><span id="uploadTxt">파일 업로드</span>
+    <input type="file" id="fileInput" accept=".xlsx" style="display:none" onchange="handleFile(this)">
+  </label>
+</div>
+
+<div class="fbar" id="fbar" style="display:none">
+  <div class="vtabs" style="margin-left:0">
+    <button class="vt on" onclick="sv('weekly',this)">📋 주차별</button>
+    <button class="vt"    onclick="sv('sbu',this)">🏢 사업부별</button>
+  </div>
+</div>
+
+<div class="main" id="mainArea" style="display:none">
+
+  <div class="kpis">
+    <div class="kpi dark">
+      <div class="kpi-lbl">전체 대상자 <span style="font-size:9px;opacity:.6;font-weight:400;font-family:'Space Mono',monospace">LIVE</span></div>
+      <div class="kpi-val" id="kLiveTotal">490</div>
+      <div class="kpi-sub" id="kLiveTotalSub">파일 업로드 시 자동 갱신</div>
+    </div>
+    <div class="kpi gl4">
+      <div class="kpi-lbl">로그인 완료</div>
+      <div class="kpi-val" id="kLoggedIn" style="color:#7dd9a0">459</div>
+      <div class="kpi-sub" id="kLoggedInSub">전체의 94%</div>
+    </div>
+    <div class="kpi rl4">
+      <div class="kpi-lbl">미로그인</div>
+      <div class="kpi-val" id="kNotLogged" style="color:#e88080">30</div>
+      <div class="kpi-sub" id="kNotLoggedSub">전체의 6%</div>
+    </div>
+    <div class="kpi yl4">
+      <div class="kpi-lbl" id="kCurWkLbl">5주차 수료 📍현재</div>
+      <div class="kpi-val" id="kCurDone" style="color:#ffa94d">30</div>
+      <div class="kpi-sub" id="kCurDoneSub">수료율 6% · 463명 기준</div>
+    </div>
+    <div class="kpi bl4">
+      <div class="kpi-lbl" id="kCurNdLbl">5주차 미수료</div>
+      <div class="kpi-val" id="kCurNd" style="color:#cb8cf4">433</div>
+      <div class="kpi-sub" id="kCurNdSub">진행 중 257 · 미시작 176</div>
+    </div>
+  </div>
+
+  <!-- Weekly -->
+  <div class="panel on" id="pWeekly">
+
+    <!-- 누적 수료 현황 (상단) -->
+    <div class="card">
+      <div class="stitle">누적 수료 현황</div>
+      <p style="font-size:11px;color:var(--t2);margin-bottom:14px;line-height:1.6;">주차별 대상자는 이전 주차 수료자 기준입니다. 1주차 완료자가 2주차 대상자, 2주차 완료자가 3주차 대상자로 순차 집계됩니다.</p>
+      <div class="tw"><table id="tC"></table></div>
+    </div>
+
+    <!-- 도넛 차트 -->
+    <div class="card">
+      <div class="stitle">주차별 수료 현황</div>
+      <div class="legend">
+        <div class="li"><div class="ld" id="ldD" style="background:#6c63ff"></div>수료(완료)</div>
+        <div class="li"><div class="ld" id="ldP" style="background:#ffa94d"></div>진행 중</div>
+        <div class="li"><div class="ld" id="ldN" style="background:#ff4757"></div>미시작</div>
+        <div class="li"><div class="ld" id="ldR" style="background:#3a3a52"></div>미로그인</div>
+      </div>
+      <div id="donutRow1" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px;"></div>
+      <div id="donutRow2" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;"></div>
+    </div>
+
+    <!-- ALL View 테이블 -->
+    <div class="card">
+      <div class="stitle">
+        주차별 상세 테이블 · ALL View
+        <span class="lock-badge">🔒 1~4주차 고정 · 📊 5주차 자동계산(미확정)</span>
+      </div>
+      <div class="tw"><table id="tW"></table></div>
+    </div>
+
+  </div>
+
+  <!-- SBU -->
+  <div class="panel" id="pSbu">
+    <div class="card">
+      <div class="stitle">
+        사업부별 현황
+        <span class="sbadge">수료율 높은 순</span>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--text2);">주차 선택</span>
+          <select id="sbuWeekSel" onchange="renderSbu()" style="
+            font-size:11px;font-family:'Noto Sans KR',sans-serif;
+            background:var(--surface2);color:var(--text);
+            border:1px solid var(--border);border-radius:8px;
+            padding:4px 10px;cursor:pointer;outline:none;">
+            <option value="0">1주차 (2/23~3/1)</option>
+            <option value="1">2주차 (3/2~3/8)</option>
+            <option value="2">3주차 (3/9~3/15)</option>
+            <option value="3">4주차 (3/16~3/22)</option>
+            <option value="4" selected>5주차 (3/23~3/29)</option>
+            <option value="5">6주차 (3/30~4/5)</option>
+            <option value="6">7주차 (4/6~4/12)</option>
+            <option value="7">8주차 (4/13~4/19)</option>
+            <option value="8">9주차 (4/20~4/26)</option>
+            <option value="9">10주차 (4/27~5/3)</option>
+          </select>
+        </div>
+      </div>
+      <div class="tw"><table class="stbl" id="tS"></table></div>
+    </div>
+
+    <div class="card">
+      <div class="stitle">미로그인 인원 명단 <span class="sbadge" id="nrCountBadge">0명</span></div>
+      <div class="tw"><table class="stbl" id="tNr"></table></div>
+    </div>
+  </div>
+
+</div>
+<div class="footer" id="footer" style="display:none">AI 미션룸 이행 현황 대시보드 · 기준일 2026-03-24 · 소스: <span id="footerSource">미션룸트래킹_0324오후.xlsx</span></div>
+
+<script>
+// ── 주차별 고정 헤드카운트 (매주 금요일 잠금) ─────────────────────────────
+// 형식: { total: 전체대상자, nr: 미로그인 }
+// 확정된 주차는 값 고정, 미확정(fut)은 null
+const HEADCOUNT = [
+  {total: 513, nr: 120},   // 1주차 (3/2 일 기준)   ← 🔒 고정
+  {total: 493, nr: 100},   // 2주차 (3/9 일 기준)   ← 🔒 고정
+  {total: 503, nr: 39},    // 3주차 (3/16 일 기준)  ← 🔒 고정
+  {total: 491, nr: 33},    // 4주차 (3/23 일 기준)  ← 🔒 고정
+  {total: 490, nr: 30},    // 5주차 (3/30 일 기준)  ← 진행 중 · 파일 자동계산값 (미확정)
+  {total: null, nr: null}, // 6주차 — 업데이트 예정
+  {total: null, nr: null}, // 7주차 — 업데이트 예정
+  {total: null, nr: null}, // 8주차 — 업데이트 예정
+  {total: null, nr: null}, // 9주차 — 업데이트 예정
+  {total: null, nr: null}, // 10주차 — 업데이트 예정
+];
+
+// ── 주차별 수료 현황 데이터 (매주 업데이트) ──────────────────────────────
+const STATS = [
+  {w:"1주차", d:"2/23~3/1",  done:370, prog:90,  ns:0,   nd:90,  rate:80, fut:false},
+  {w:"2주차", d:"3/2~3/8",   done:318, prog:136, ns:6,   nd:142, rate:69, fut:false},
+  {w:"3주차", d:"3/9~3/15",  done:273, prog:168, ns:19,  nd:187, rate:59, fut:false},
+  {w:"4주차", d:"3/16~3/22", done:184, prog:209, ns:67,  nd:276, rate:40, fut:false},
+  {w:"5주차", d:"3/23~3/29", done:45,  prog:239, ns:176, nd:415, rate:10, fut:false},
+  {w:"6주차", d:"3/30~4/5",  done:0,   prog:0,   ns:460, nd:460, rate:0,  fut:true},
+  {w:"7주차", d:"4/6~4/12",  done:0,   prog:0,   ns:460, nd:460, rate:0,  fut:true},
+  {w:"8주차", d:"4/13~4/19", done:0,   prog:0,   ns:460, nd:460, rate:0,  fut:true},
+  {w:"9주차", d:"4/20~4/26", done:0,   prog:0,   ns:460, nd:460, rate:0,  fut:true},
+  {w:"10주차",d:"4/27~5/3",  done:0,   prog:0,   ns:460, nd:460, rate:0,  fut:true},
+];
+let CUR = 4; // 현재 주차 (파일 업로드 시 자동 갱신)
+
+// STATS와 HEADCOUNT 합치기
+const DATA = STATS.map((s, i) => {
+  const hc = HEADCOUNT[i];
+  const total = hc.total;
+  const nr = hc.nr;
+  const li = total != null && nr != null ? total - nr : null;
+  return {...s, total, nr, li};
+});
+
+// 고정 완료된 주차 인덱스 (0-based) — 매주 일요일 고정 요청 시 추가
+const LOCKED_WEEKS = [0, 1, 2, 3]; // 1~4주차 고정 완료, 5주차는 파일 자동계산값(미확정)
+const SBU = {
+  "AI Studio":         {t:8,   nr:0,  w5t:8,   w5d:3, w5p:4,  w5n:1,  r5:38},
+  "COO Office":        {t:13,  nr:0,  w5t:13,  w5d:3, w5p:9,  w5n:1,  r5:23},
+  "미래전략":           {t:29,  nr:2,  w5t:27,  w5d:5, w5p:8,  w5n:14, r5:19},
+  "경영지원":           {t:23,  nr:5,  w5t:18,  w5d:3, w5p:10, w5n:5,  r5:17},
+  "콘텐츠커머스사업부":  {t:10,  nr:0,  w5t:10,  w5d:1, w5p:4,  w5n:5,  r5:10},
+  "데이드":             {t:50,  nr:4,  w5t:46,  w5d:3, w5p:23, w5n:20, r5:7},
+  "소셜엠씨":           {t:86,  nr:11, w5t:75,  w5d:5, w5p:38, w5n:32, r5:7},
+  "광고사업부":         {t:120, nr:3,  w5t:117, w5d:5, w5p:60, w5n:52, r5:4},
+  "팀민트":             {t:63,  nr:2,  w5t:61,  w5d:2, w5p:49, w5n:10, r5:3},
+  "CEO Office":        {t:4,   nr:0,  w5t:4,   w5d:0, w5p:1,  w5n:3,  r5:0},
+  "Compliance":        {t:9,   nr:0,  w5t:9,   w5d:0, w5p:7,  w5n:2,  r5:0},
+  "공공사업부":         {t:20,  nr:1,  w5t:19,  w5d:0, w5p:12, w5n:7,  r5:0},
+  "브랜드그로스":       {t:27,  nr:2,  w5t:25,  w5d:0, w5p:13, w5n:12, r5:0},
+  "세마리토끼":         {t:24,  nr:0,  w5t:24,  w5d:0, w5p:13, w5n:11, r5:0},
+  "팀민트베트남":       {t:9,   nr:2,  w5t:7,   w5d:0, w5p:6,  w5n:1,  r5:0},
+};
+
+// ── 주차별 사업부 데이터 (전체 주차 하드코딩) ──────────────────────────
+const SBU_BY_WEEK = [{"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 3, "wp": 1, "wn": 0, "rate": 75}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 6, "wp": 12, "wn": 0, "rate": 26}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 9, "wp": 0, "wn": 0, "rate": 100}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 11, "wp": 2, "wn": 0, "rate": 85}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 23, "wp": 4, "wn": 0, "rate": 79}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 6, "wp": 4, "wn": 0, "rate": 60}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 12, "wp": 7, "wn": 0, "rate": 60}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 21, "wp": 2, "wn": 0, "rate": 91}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 38, "wp": 7, "wn": 0, "rate": 79}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 17, "wp": 7, "wn": 0, "rate": 65}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 95, "wp": 21, "wn": 0, "rate": 80}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 62, "wp": 14, "wn": 0, "rate": 72}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 8, "wp": 0, "wn": 0, "rate": 100}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 52, "wp": 9, "wn": 0, "rate": 83}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 7, "wp": 0, "wn": 0, "rate": 78}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 2, "wp": 2, "wn": 0, "rate": 50}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 6, "wp": 10, "wn": 2, "rate": 26}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 9, "wp": 0, "wn": 0, "rate": 100}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 10, "wp": 3, "wn": 0, "rate": 77}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 22, "wp": 5, "wn": 0, "rate": 76}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 6, "wp": 4, "wn": 0, "rate": 60}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 7, "wp": 12, "wn": 0, "rate": 35}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 18, "wp": 5, "wn": 0, "rate": 78}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 29, "wp": 14, "wn": 2, "rate": 60}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 15, "wp": 8, "wn": 1, "rate": 58}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 82, "wp": 34, "wn": 0, "rate": 69}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 54, "wp": 21, "wn": 1, "rate": 63}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 7, "wp": 1, "wn": 0, "rate": 88}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 44, "wp": 17, "wn": 0, "rate": 70}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 7, "wp": 0, "wn": 0, "rate": 78}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 2, "wp": 1, "wn": 1, "rate": 50}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 6, "wp": 10, "wn": 2, "rate": 26}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 9, "wp": 0, "wn": 0, "rate": 100}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 10, "wp": 3, "wn": 0, "rate": 77}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 19, "wp": 7, "wn": 1, "rate": 66}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 4, "wp": 6, "wn": 0, "rate": 40}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 4, "wp": 15, "wn": 0, "rate": 20}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 16, "wp": 5, "wn": 2, "rate": 70}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 22, "wp": 20, "wn": 3, "rate": 46}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 12, "wp": 10, "wn": 2, "rate": 46}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 73, "wp": 40, "wn": 3, "rate": 61}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 44, "wp": 28, "wn": 4, "rate": 51}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 7, "wp": 0, "wn": 1, "rate": 88}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 39, "wp": 22, "wn": 0, "rate": 62}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 6, "wp": 1, "wn": 0, "rate": 67}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 1, "wp": 2, "wn": 1, "rate": 25}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 4, "wp": 10, "wn": 4, "rate": 17}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 6, "wp": 3, "wn": 0, "rate": 67}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 10, "wp": 3, "wn": 0, "rate": 77}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 11, "wp": 15, "wn": 1, "rate": 38}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 2, "wp": 8, "wn": 0, "rate": 20}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 3, "wp": 12, "wn": 4, "rate": 15}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 11, "wp": 8, "wn": 4, "rate": 48}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 15, "wp": 19, "wn": 11, "rate": 31}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 8, "wp": 10, "wn": 6, "rate": 31}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 51, "wp": 47, "wn": 18, "rate": 43}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 26, "wp": 36, "wn": 14, "rate": 30}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 7, "wp": 0, "wn": 1, "rate": 88}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 22, "wp": 36, "wn": 3, "rate": 35}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 7, "wp": 0, "wn": 0, "rate": 78}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 0, "wp": 1, "wn": 3, "rate": 0}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 3, "wp": 10, "wn": 5, "rate": 13}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 0, "wp": 7, "wn": 2, "rate": 0}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 3, "wp": 9, "wn": 1, "rate": 23}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 5, "wp": 8, "wn": 14, "rate": 17}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 1, "wp": 4, "wn": 5, "rate": 10}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 0, "wp": 12, "wn": 7, "rate": 0}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 2, "wp": 11, "wn": 10, "rate": 9}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 3, "wp": 22, "wn": 20, "rate": 6}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 0, "wp": 12, "wn": 12, "rate": 0}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 10, "wp": 54, "wn": 52, "rate": 8}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 9, "wp": 34, "wn": 33, "rate": 10}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 4, "wp": 3, "wn": 1, "rate": 50}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 4, "wp": 47, "wn": 10, "rate": 6}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 1, "wp": 5, "wn": 1, "rate": 11}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 0, "wp": 0, "wn": 4, "rate": 0}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 0, "wp": 0, "wn": 18, "rate": 0}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 0, "wp": 0, "wn": 9, "rate": 0}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 0, "wp": 0, "wn": 13, "rate": 0}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 0, "wp": 0, "wn": 27, "rate": 0}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 0, "wp": 0, "wn": 10, "rate": 0}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 0, "wp": 0, "wn": 19, "rate": 0}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 0, "wp": 0, "wn": 23, "rate": 0}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 0, "wp": 0, "wn": 45, "rate": 0}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 0, "wp": 0, "wn": 24, "rate": 0}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 0, "wp": 0, "wn": 116, "rate": 0}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 0, "wp": 0, "wn": 76, "rate": 0}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 0, "wp": 0, "wn": 8, "rate": 0}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 0, "wp": 0, "wn": 61, "rate": 0}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 0, "wp": 0, "wn": 7, "rate": 0}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 0, "wp": 0, "wn": 4, "rate": 0}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 0, "wp": 0, "wn": 18, "rate": 0}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 0, "wp": 0, "wn": 9, "rate": 0}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 0, "wp": 0, "wn": 13, "rate": 0}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 0, "wp": 0, "wn": 27, "rate": 0}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 0, "wp": 0, "wn": 10, "rate": 0}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 0, "wp": 0, "wn": 19, "rate": 0}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 0, "wp": 0, "wn": 23, "rate": 0}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 0, "wp": 0, "wn": 45, "rate": 0}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 0, "wp": 0, "wn": 24, "rate": 0}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 0, "wp": 0, "wn": 116, "rate": 0}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 0, "wp": 0, "wn": 76, "rate": 0}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 0, "wp": 0, "wn": 8, "rate": 0}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 0, "wp": 0, "wn": 61, "rate": 0}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 0, "wp": 0, "wn": 7, "rate": 0}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 0, "wp": 0, "wn": 4, "rate": 0}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 0, "wp": 0, "wn": 18, "rate": 0}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 0, "wp": 0, "wn": 9, "rate": 0}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 0, "wp": 0, "wn": 13, "rate": 0}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 0, "wp": 0, "wn": 27, "rate": 0}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 0, "wp": 0, "wn": 10, "rate": 0}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 0, "wp": 0, "wn": 19, "rate": 0}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 0, "wp": 0, "wn": 23, "rate": 0}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 0, "wp": 0, "wn": 45, "rate": 0}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 0, "wp": 0, "wn": 24, "rate": 0}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 0, "wp": 0, "wn": 116, "rate": 0}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 0, "wp": 0, "wn": 76, "rate": 0}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 0, "wp": 0, "wn": 8, "rate": 0}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 0, "wp": 0, "wn": 61, "rate": 0}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 0, "wp": 0, "wn": 7, "rate": 0}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 0, "wp": 0, "wn": 4, "rate": 0}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 0, "wp": 0, "wn": 18, "rate": 0}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 0, "wp": 0, "wn": 9, "rate": 0}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 0, "wp": 0, "wn": 13, "rate": 0}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 0, "wp": 0, "wn": 27, "rate": 0}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 0, "wp": 0, "wn": 10, "rate": 0}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 0, "wp": 0, "wn": 19, "rate": 0}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 0, "wp": 0, "wn": 23, "rate": 0}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 0, "wp": 0, "wn": 45, "rate": 0}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 0, "wp": 0, "wn": 24, "rate": 0}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 0, "wp": 0, "wn": 116, "rate": 0}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 0, "wp": 0, "wn": 76, "rate": 0}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 0, "wp": 0, "wn": 8, "rate": 0}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 0, "wp": 0, "wn": 61, "rate": 0}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 0, "wp": 0, "wn": 7, "rate": 0}}, {"CEO Office": {"t": 4, "nr": 0, "wt": 4, "wd": 0, "wp": 0, "wn": 4, "rate": 0}, "경영지원": {"t": 23, "nr": 5, "wt": 23, "wd": 0, "wp": 0, "wn": 18, "rate": 0}, "Compliance": {"t": 9, "nr": 0, "wt": 9, "wd": 0, "wp": 0, "wn": 9, "rate": 0}, "COO Office": {"t": 13, "nr": 0, "wt": 13, "wd": 0, "wp": 0, "wn": 13, "rate": 0}, "미래전략": {"t": 29, "nr": 2, "wt": 29, "wd": 0, "wp": 0, "wn": 27, "rate": 0}, "콘텐츠커머스사업부": {"t": 10, "nr": 0, "wt": 10, "wd": 0, "wp": 0, "wn": 10, "rate": 0}, "공공사업부": {"t": 20, "nr": 1, "wt": 20, "wd": 0, "wp": 0, "wn": 19, "rate": 0}, "세마리토끼": {"t": 23, "nr": 0, "wt": 23, "wd": 0, "wp": 0, "wn": 23, "rate": 0}, "데이드": {"t": 48, "nr": 3, "wt": 48, "wd": 0, "wp": 0, "wn": 45, "rate": 0}, "브랜드그로스": {"t": 26, "nr": 2, "wt": 26, "wd": 0, "wp": 0, "wn": 24, "rate": 0}, "광고사업부": {"t": 119, "nr": 3, "wt": 119, "wd": 0, "wp": 0, "wn": 116, "rate": 0}, "소셜엠씨": {"t": 86, "nr": 10, "wt": 86, "wd": 0, "wp": 0, "wn": 76, "rate": 0}, "AI Studio": {"t": 8, "nr": 0, "wt": 8, "wd": 0, "wp": 0, "wn": 8, "rate": 0}, "팀민트": {"t": 63, "nr": 2, "wt": 63, "wd": 0, "wp": 0, "wn": 61, "rate": 0}, "팀민트베트남": {"t": 9, "nr": 2, "wt": 9, "wd": 0, "wp": 0, "wn": 7, "rate": 0}}];
+
+function initSbuByWeek() {}  // 이미 초기화됨
+
+// ── 테마 ─────────────────────────────────────────────────────────────────
+['cD','cP','cN','cR'].forEach(id => document.getElementById(id).addEventListener('input', renderAll));
+function gc() {
+  return {d:document.getElementById('cD').value, p:document.getElementById('cP').value,
+          n:document.getElementById('cN').value, r:document.getElementById('cR').value};
+}
+
+function sv(v, btn) {
+  document.querySelectorAll('.vt').forEach(t => t.classList.remove('on'));
+  if (btn) btn.classList.add('on');
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+  document.getElementById(v==='weekly'?'pWeekly':'pSbu').classList.add('on');
+}
+
+function renderAll() { renderKpis(); renderBars(); renderWeekly(); renderCumul(); renderSbu(); renderNrTable(); }
+
+// ── KPI 카드 (STATS[CUR] 기준 동적 갱신) ─────────────────────────────────
+function renderKpis() {
+  const s = DATA[CUR];
+  const wLabel = s.w;
+  const rate = s.rate;
+  const li = s.li != null ? s.li : s.loggedIn;
+
+  const el = (id) => document.getElementById(id);
+  if (el('kCurWkLbl')) el('kCurWkLbl').textContent = wLabel + ' 수료 📍현재';
+  if (el('kCurDone')) el('kCurDone').textContent = s.done.toLocaleString();
+  if (el('kCurDoneSub')) el('kCurDoneSub').textContent = '수료율 ' + rate + '% · ' + (li||'-') + '명 기준';
+  if (el('kCurNdLbl')) el('kCurNdLbl').textContent = wLabel + ' 미수료';
+  if (el('kCurNd')) el('kCurNd').textContent = s.nd.toLocaleString();
+  if (el('kCurNdSub')) el('kCurNdSub').textContent = '진행 중 ' + s.prog + ' · 미시작 ' + s.ns;
+}
+
+// ── Rings ─────────────────────────────────────────────────────────────────
+function renderRings() {
+  const c = gc(), el = document.getElementById('rings');
+  el.innerHTML = '';
+  DATA.forEach((s, i) => {
+    const cur = i === CUR, r = 20, cx = 26, cy = 26;
+    const circ = 2 * Math.PI * r, dash = (s.rate / 100) * circ;
+    const div = document.createElement('div');
+    div.className = 'rcard' + (cur ? ' cur' : '') + (s.fut ? ' fut' : '');
+    div.innerHTML = `
+      <div class="rwk${cur?' cur':''}">${s.w}${cur?' 📍':''}</div>
+      <div class="rdt">${s.d}</div>
+      <div class="rwrap">
+        <svg width="52" height="52" viewBox="0 0 52 52">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#E5E7EB" stroke-width="5"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.fut?'#2a2a3e':c.d}"
+            stroke-width="5" stroke-dasharray="${dash} ${circ}" stroke-linecap="round"/>
+        </svg>
+        <div class="rpct${cur?' cur':''}">${s.fut ? '-' : s.rate + '%'}</div>
+      </div>
+      <div class="rsub">${s.fut ? '진행 전' : s.done + '명'}</div>`;
+    el.appendChild(div);
+  });
+}
+
+// ── Donut Chart ───────────────────────────────────────────────────────────
+function renderBars() {
+  const c = gc();
+  document.getElementById('ldD').style.background = c.d;
+  document.getElementById('ldP').style.background = c.p;
+  document.getElementById('ldN').style.background = c.n;
+  document.getElementById('ldR').style.background = c.r;
+
+  function makeDonut(s) {
+    const size=96, cx=48, cy=48, r=38, sw=8;
+    const circ = 2*Math.PI*r;
+    const base = s.total || 1;
+    const segs = [
+      {v:s.done, col:c.d},
+      {v:s.prog, col:c.p},
+      {v:s.ns,   col:c.n},
+      {v:s.nr||0,col:c.r},
+    ];
+    let offset=0;
+    let html=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--s)" stroke-width="${sw}"/>`;
+    if (s.fut) {
+      html+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--bd)" stroke-width="${sw}"/>`;
+    } else {
+      segs.forEach(seg=>{
+        if(!seg.v) return;
+        const len=(seg.v/base)*circ;
+        html+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${seg.col}" stroke-width="${sw}" stroke-dasharray="${len} ${circ}" stroke-dashoffset="${-offset}" stroke-linecap="butt"/>`;
+        offset+=len;
+      });
+    }
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg)">${html}</svg>`;
+  }
+
+  function buildCard(s, i) {
+    const cur = i===CUR;
+    const div = document.createElement('div');
+    div.className = 'dc'+(cur?' cur':'')+(s.fut?' fut':'');
+    div.innerHTML = `
+      <div class="dc-wk${cur?' cur':''}">${s.w}${cur?' 📍':''}</div>
+      <div class="dc-dt">${s.d}</div>
+      <div class="dc-wrap">
+        ${makeDonut(s)}
+        <div class="dc-center">
+          <div class="dc-pct${cur?' cur':''}">${s.fut?'-':s.rate+'%'}</div>
+          <div class="dc-sub">${s.fut?'진행 전':s.done+'명'}</div>
+        </div>
+      </div>`;
+    return div;
+  }
+
+  const r1 = document.getElementById('donutRow1');
+  const r2 = document.getElementById('donutRow2');
+  r1.innerHTML = ''; r2.innerHTML = '';
+  DATA.slice(0,5).forEach((s,i)  => r1.appendChild(buildCard(s, i)));
+  DATA.slice(5,10).forEach((s,i) => r2.appendChild(buildCard(s, i+5)));
+}
+
+// ── Weekly Table ──────────────────────────────────────────────────────────
+function renderWeekly() {
+  const defs = [
+    {l:'전체 대상자(#)', k:'total', locked:true},
+    {l:'미로그인(#)',     k:'nr',    locked:true},
+    {l:'로그인(#)',       k:'li',    locked:false},
+    {l:'수료(완료)(#)',   k:'done',  locked:false},
+    {l:'진행 중(#)',      k:'prog',  locked:false},
+    {l:'미시작(#)',       k:'ns',    locked:false},
+    {l:'미수료 계(#)',    k:'nd',    locked:false},
+    {l:'로그인 기준 수료율(%)', k:'rate', locked:false, isR:true},
+  ];
+  let h = '<thead><tr><th class="lc">구분</th>';
+  DATA.forEach((s, i) => {
+    const cls = i===CUR ? 'cur' : s.fut ? 'fut' : '';
+    h += `<th class="${cls}">${i===CUR?'<div class="htag">HERE</div><br>':''}<small>(${s.d})</small><br>${s.w}</th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  defs.forEach(r => {
+    const rowCls = r.locked ? ' class="locked-row"' : '';
+    // 행 레이블: 고정 여부 아이콘 동적 표시
+    const labelPrefix = r.locked ? '' : '';
+    h += `<tr${rowCls}><td class="lc">${labelPrefix}${r.l}</td>`;
+    DATA.forEach((s, i) => {
+      const v = s[r.k];
+      const cur = i === CUR;
+      const isNullPend = v === null;        // 미래 주차 미확정
+      const isFutNonLocked = s.fut && !r.locked;
+      const isLockedWeek = LOCKED_WEEKS.includes(i);
+      const isLiveCalc = r.locked && !isLockedWeek && !isNullPend; // 자동계산값
+
+      let disp, cls = cur ? 'cb' : '';
+      if (isNullPend)       disp = '<span class="cpend">업데이트 예정</span>';
+      else if (isFutNonLocked) disp = '<span class="cm">-</span>';
+      else if (r.isR)       disp = `${v}%`;
+      else                  disp = v.toLocaleString();
+
+      if (r.isR && !s.fut && !isNullPend) cls += ' ' + (v>=70?'cg2':v>=40?'cy':'cr');
+
+      let cellStyle = '';
+      if (r.locked && isLockedWeek && !isNullPend) {
+        cellStyle = 'position:relative;';
+        disp += '<span style="position:absolute;top:2px;right:3px;font-size:9px;opacity:.5">🔒</span>';
+      } else if (isLiveCalc) {
+        cellStyle = 'position:relative;';
+        disp += '<span style="position:absolute;top:2px;right:3px;font-size:9px;opacity:.6">📊</span>';
+      }
+
+      h += `<td class="${cls}" style="${cellStyle}">${disp}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</tbody>';
+  document.getElementById('tW').innerHTML = h;
+}
+
+// ── Cumul Table ───────────────────────────────────────────────────────────
+function renderCumul() {
+  // 누적 View 대상자 계산: 1주차=전체대상자, N주차=N-1주차 완료 수
+  const cumulData = DATA.map((s, i) => {
+    let cTarget;
+    if (i === 0) {
+      // 1주차: 전체 대상자 (고정값 or 자동계산)
+      cTarget = HEADCOUNT[0].total;
+    } else {
+      // N주차: 이전 주차 완료 수
+      cTarget = DATA[i-1].done;
+    }
+    const cDone = s.done;
+    const cNot  = s.fut ? null : (cTarget != null ? cTarget - cDone : null);
+    const cRate = (!s.fut && cTarget) ? Math.round(cDone / cTarget * 100) : 0;
+    return {...s, cTarget, cDone, cNot, cRate};
+  });
+
+  const defs = [
+    {l:'주차별 대상자(#)', k:'cTarget'},
+    {l:'수료(완료)(#)',    k:'cDone'},
+    {l:'미수료(#)',        k:'cNot'},
+    {l:'수료율(%)',        k:'cRate', isR:true},
+  ];
+  let h = '<thead><tr><th class="lc">구분</th>';
+  cumulData.forEach((s, i) => {
+    const cls = i===CUR ? 'cur' : s.fut ? 'fut' : '';
+    h += `<th class="${cls}">${i===CUR?'<div class="htag">HERE</div><br>':''}<small>(${s.d})</small><br>${s.w}</th>`;
+  });
+  h += '</tr></thead><tbody>';
+
+  defs.forEach(r => {
+    h += `<tr><td class="lc">${r.l}</td>`;
+    cumulData.forEach((s, i) => {
+      const v = s[r.k];
+      const cur = i === CUR;
+      const isNullPend = v === null;
+      const isFutNonTarget = s.fut && r.k !== 'cTarget';
+
+      let disp, cls = cur ? 'cb' : '';
+      if (isNullPend)          disp = '<span class="cm">-</span>';
+      else if (isFutNonTarget) disp = '<span class="cm">-</span>';
+      else if (r.isR)          disp = `${v}%`;
+      else                     disp = v.toLocaleString();
+
+      if (r.isR && !s.fut) cls += ' ' + (v>=70?'cg2':v>=40?'cy':'cr');
+      h += `<td class="${cls}">${disp}</td>`;
+    });
+    h += '</tr>';
+  });
+  h += '</tbody>';
+  document.getElementById('tC').innerHTML = h;
+}
+
+// ── SBU Table ─────────────────────────────────────────────────────────────
+function renderSbu() {
+  const c = gc();
+  const sel = document.getElementById('sbuWeekSel');
+  const wi = sel ? parseInt(sel.value) : CUR;
+  const wLabel = STATS[wi].w;
+
+  // 데이터 소스 결정
+  if (!SBU_BY_WEEK) initSbuByWeek();
+  const weekData = SBU_BY_WEEK[wi];
+
+  const sorted = Object.entries(weekData).sort((a, b) => b[1].rate - a[1].rate);
+  let h = `<thead><tr>
+    <th>사업부</th><th>전체 대상자</th><th>미로그인</th>
+    <th>${wLabel} 수료</th><th>${wLabel} 진행 중</th><th>${wLabel} 미시작</th>
+    <th>${wLabel} 수료율</th><th style="min-width:120px">이행 현황</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(([nm, s]) => {
+    const mt = s.wt || 1;
+    const pD=(s.wd/mt*100).toFixed(0), pP=(s.wp/mt*100).toFixed(0), pN=(s.wn/mt*100).toFixed(0);
+    h += `<tr>
+      <td>${nm}</td><td>${s.t}</td>
+      <td>${s.nr>0?`<span class="cr">${s.nr}</span>`:'<span class="cg2">0</span>'}</td>
+      <td><b>${s.wd}</b></td><td>${s.wp}</td><td>${s.wn}</td>
+      <td style="font-weight:700">${s.rate}%</td>
+      <td>
+        <div class="mbar"><div style="display:flex;height:100%">
+          <div style="width:${pD}%;background:${c.d};height:100%"></div>
+          <div style="width:${pP}%;background:${c.p};height:100%"></div>
+          <div style="width:${pN}%;background:${c.n};height:100%"></div>
+        </div></div>
+        <div style="font-size:9px;color:var(--text2);margin-top:1px">수료 ${pD}% · 진행 ${pP}% · 미시작 ${pN}%</div>
+      </td>
+    </tr>`;
+  });
+  h += '</tbody>';
+  document.getElementById('tS').innerHTML = h;
+}
+
+
+
+// ── 미로그인 명단 테이블 ──────────────────────────────────────────────────
+let NR_LIST = []; // 파일 업로드 시 채워짐
+
+function renderNrTable() {
+  const badge = document.getElementById('nrCountBadge');
+  const tbl   = document.getElementById('tNr');
+  if (!tbl) return;
+
+  if (NR_LIST.length === 0) {
+    if (badge) badge.textContent = '0명';
+    tbl.innerHTML = '<tbody><tr><td colspan="7" style="text-align:center;padding:20px;color:var(--t2);">파일을 업로드하면 미로그인 명단이 표시됩니다.</td></tr></tbody>';
+    return;
+  }
+
+  if (badge) badge.textContent = NR_LIST.length + '명';
+
+  // 사업부별 색상 팔레트
+  const sbuList = [...new Set(NR_LIST.map(r => r.sbu).filter(Boolean))].sort();
+  const palette = [
+    'rgba(108,99,255,.18)','rgba(255,169,77,.18)','rgba(255,71,87,.18)',
+    'rgba(203,140,244,.18)','rgba(29,158,117,.18)','rgba(67,233,123,.18)',
+    'rgba(255,100,130,.18)','rgba(100,180,255,.18)','rgba(255,200,80,.18)',
+  ];
+  const sbuColor = {};
+  const sbuText = [
+    '#8b7cf8','#e09040','#e05060',
+    '#cb8cf4','#1d9e75','#3db86a',
+    '#e06080','#4aa0e0','#d0a040',
+  ];
+  sbuList.forEach((s, i) => {
+    sbuColor[s] = {bg: palette[i % palette.length], text: sbuText[i % sbuText.length]};
+  });
+
+  let h = `<thead><tr>
+    <th>당월입사</th><th>사업부</th><th>본부</th><th>부서</th><th>이름</th><th>직책</th><th>관리자</th>
+  </tr></thead><tbody>`;
+  NR_LIST.forEach(r => {
+    const isNew = r.status === '당월입사';
+    const col = sbuColor[r.sbu] || {bg:'rgba(255,255,255,.05)', text:'var(--t2)'};
+    h += `<tr>
+      <td>${isNew ? '<span class="new-badge">당월입사</span>' : '<span class="cm">-</span>'}</td>
+      <td><span style="background:${col.bg};color:${col.text};padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;">${r.sbu||'-'}</span></td>
+      <td>${r.bon||'-'}</td>
+      <td>${r.dep||'-'}</td>
+      <td style="font-weight:700">${r.name}</td>
+      <td style="color:var(--t2)">${r.pos||'-'}</td>
+      <td style="color:var(--t2)">${r.mgr||'-'}</td>
+    </tr>`;
+  });
+  h += '</tbody>';
+  tbl.innerHTML = h;
+}
+
+// ── 파일 업로드 자동 파싱 ────────────────────────────────────────────────
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const screenTxt = document.getElementById('uploadScreenTxt');
+  const barTxt = document.getElementById('uploadTxt');
+  if (screenTxt) screenTxt.textContent = '⏳ 로딩 중...';
+  if (barTxt) barTxt.textContent = '⏳ 로딩 중...';
+
+  // XLSX 로드 완료 대기 후 파싱
+  function waitAndParse(arrayBuffer, attempts) {
+    if (typeof XLSX === 'undefined') {
+      if (attempts <= 0) {
+        if (screenTxt) screenTxt.textContent = '❌ 라이브러리 로드 실패';
+        alert('SheetJS 라이브러리를 불러오지 못했습니다.\n인터넷 연결을 확인하고 페이지를 새로고침 후 다시 시도해주세요.');
+        return;
+      }
+      if (screenTxt) screenTxt.textContent = '⏳ 라이브러리 로딩 중... (' + (11-attempts) + ')';
+      setTimeout(function() { waitAndParse(arrayBuffer, attempts - 1); }, 500);
+      return;
+    }
+    try {
+      const wb = XLSX.read(new Uint8Array(arrayBuffer), {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+      applyFileData(rows);
+      document.getElementById('uploadScreen').style.display = 'none';
+      document.getElementById('sbar').style.display = 'flex';
+      document.getElementById('fbar').style.display = 'flex';
+      document.getElementById('mainArea').style.display = 'block';
+      document.getElementById('footer').style.display = 'block';
+      document.getElementById('hRight').style.display = 'block';
+      if (barTxt) barTxt.textContent = '✅ ' + file.name;
+      if (screenTxt) screenTxt.textContent = '파일 선택';
+      const fs = document.getElementById('footerSource');
+      if (fs) fs.textContent = file.name;
+    } catch(err) {
+      if (barTxt) barTxt.textContent = '❌ 오류';
+      if (screenTxt) screenTxt.textContent = '다시 시도';
+      alert('파싱 실패: ' + err.message);
+    }
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(e) { waitAndParse(e.target.result, 10); };
+  reader.readAsArrayBuffer(file);
+}
+
+function applyFileData(rows) {
+  // 헤더 행 찾기
+  let hi = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i] && rows[i].indexOf('Status') !== -1) { hi = i; break; }
+  }
+  if (hi < 0) { alert('헤더(Status 컬럼)를 찾을 수 없습니다.'); return; }
+
+  const H = rows[hi];
+  const WKS = ['1주차','2주차','3주차','4주차','5주차','6주차','7주차','8주차','9주차','10주차'];
+  const wi = {}, SI = H.indexOf('STATUS'), LI = H.indexOf('첫로그인 일자');
+  WKS.forEach(w => { wi[w] = H.indexOf(w); });
+
+  // 대상자만 필터
+  const data = rows.slice(hi + 1).filter(r => r && r[SI] === '대상자');
+
+  // 주차별 통계 계산 후 STATS / DATA / HEADCOUNT 갱신
+  let newCur = 0;
+  // 전체 미로그인 수 (첫로그인 일자 기준 — 주차 컬럼과 무관)
+  const totalPeople = data.length;
+  const nrAll = data.filter(r => r[LI] === '미로그인').length;
+
+  WKS.forEach((wk, i) => {
+    const ci = wi[wk];
+    if (ci < 0) return;
+    const col    = data.map(r => r[ci]);
+    const done   = col.filter(v => v === '완료').length;
+    const prog   = col.filter(v => v === '진행 중').length;
+    const ns     = col.filter(v => v === '미시작').length;
+    const nd     = prog + ns;
+    const loginW = totalPeople - nrAll;  // 로그인 완료 인원 기준
+    const rate   = loginW > 0 ? Math.round(done / loginW * 100) : 0;
+    const isFut  = done === 0 && prog === 0 && ns > 0;
+
+    // STATS 수료 데이터 업데이트
+    STATS[i] = {...STATS[i], done, prog, ns, nr: nrAll, nd, rate, fut: isFut};
+
+    // 고정되지 않은 주차(LOCKED_WEEKS 외)는 항상 파일값으로 갱신
+    if (!LOCKED_WEEKS.includes(i)) {
+      HEADCOUNT[i] = {total: totalPeople, nr: nrAll};
+    }
+
+    if (!isFut && (done > 0 || prog > 0)) newCur = i;
+  });
+
+  // DATA 재합성
+  for (let i = 0; i < STATS.length; i++) {
+    const hc = HEADCOUNT[i];
+    const li = (hc.total != null && hc.nr != null) ? hc.total - hc.nr : null;
+    DATA[i] = { ...STATS[i], total: hc.total, nr: hc.nr, li,
+                w: DATA[i].w, d: DATA[i].d };
+  }
+
+  // 사업부별 주차 데이터 계산
+  // SBU_BY_WEEK는 파일 업로드 시 덮어씌워짐
+  const sbuIdx = H.indexOf('사업부');
+  WKS.forEach((wk, i) => {
+    const ci = wi[wk];
+    if (ci < 0) return;
+    const sbuMap = {};
+    data.forEach(r => {
+      const sbu = r[sbuIdx];
+      if (!sbu || sbu === '-') return;
+      if (!sbuMap[sbu]) sbuMap[sbu] = {t:0, nr:0, wt:0, wd:0, wp:0, wn:0};
+      sbuMap[sbu].t++;
+      if (r[LI] === '미로그인') sbuMap[sbu].nr++;
+      const v = r[ci];
+      if (v !== null && v !== undefined && v !== '') {
+        sbuMap[sbu].wt++;
+        if (v === '완료')    sbuMap[sbu].wd++;
+        if (v === '진행 중') sbuMap[sbu].wp++;
+        if (v === '미시작')  sbuMap[sbu].wn++;
+      }
+    });
+    Object.entries(sbuMap).forEach(([nm, s]) => {
+      s.rate = s.wt > 0 ? Math.round(s.wd / s.wt * 100) : 0;
+    });
+    SBU_BY_WEEK[i] = sbuMap;
+  });
+
+  // 현재 주차 갱신
+  CUR = newCur;
+
+  // 미로그인 명단 구성
+  NR_LIST = data
+    .filter(r => r[LI] === '미로그인')
+    .map(r => ({
+      status: r[H.indexOf('Status')],
+      sbu:    r[H.indexOf('사업부')],
+      bon:    r[H.indexOf('본부')],
+      dep:    r[H.indexOf('부서')],
+      name:   r[H.indexOf('성명')],
+      pos:    r[H.indexOf('직책')],
+      mgr:    r[H.indexOf('관리자')],
+    }))
+    .sort((a,b) => (a.sbu||'').localeCompare(b.sbu||''));
+
+  // 전체 대상자 KPI — 파일 기준 live 값으로 갱신
+  const liveTotal = data.length;
+  const liveNr    = data.filter(r => r[LI] === '미로그인').length;
+  const liveLi    = liveTotal - liveNr;
+  const liPct     = liveTotal > 0 ? Math.round(liveLi / liveTotal * 100) : 0;
+  const nrPct     = liveTotal > 0 ? Math.round(liveNr / liveTotal * 100) : 0;
+  // 헤더 수치도 갱신
+  document.getElementById('hTotal').textContent  = liveTotal.toLocaleString() + '명';
+  document.getElementById('hNr').textContent     = liveNr.toLocaleString() + '명';
+  document.getElementById('hLi').textContent     = liveLi.toLocaleString() + '명';
+  document.getElementById('hCurWeek').textContent = (CUR + 1) + '주차';
+  const cb = document.getElementById('curWeekBadge');
+  if (cb) cb.textContent = '현재 ' + (CUR + 1) + '주차 📍';
+  const sel = document.getElementById('sbuWeekSel');
+  if (sel) sel.value = String(CUR);
+  document.getElementById('kLiveTotal').textContent    = liveTotal.toLocaleString();
+  document.getElementById('kLiveTotalSub').textContent = '기준일 업로드 파일';
+  document.getElementById('kLoggedIn').textContent     = liveLi.toLocaleString();
+  document.getElementById('kLoggedInSub').textContent  = '전체의 ' + liPct + '%';
+  document.getElementById('kNotLogged').textContent    = liveNr.toLocaleString();
+  document.getElementById('kNotLoggedSub').textContent = '전체의 ' + nrPct + '%';
+
+  renderAll();
+}
+
+// 파일 업로드 후 applyFileData 내에서 renderAll() 호출
+</script>
+</body>
+</html>
